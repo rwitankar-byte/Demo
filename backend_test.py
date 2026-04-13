@@ -32,6 +32,8 @@ class CropSenseAPITester:
                     response = requests.post(url, files=files, data=data)
                 else:
                     response = requests.post(url, json=data, headers=headers)
+            elif method == 'DELETE':
+                response = requests.delete(url, headers=headers)
 
             print(f"   Status: {response.status_code}")
             
@@ -81,12 +83,31 @@ class CropSenseAPITester:
 
     def create_test_image(self):
         """Create a simple test image for classification"""
-        # Create a minimal PNG image (1x1 pixel)
-        png_data = base64.b64decode(
-            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChAI9jU8'
-            'ByQAAAABJRU5ErkJggg=='
-        )
-        return png_data
+        # Create a simple 64x64 green leaf-like image using PIL
+        try:
+            from PIL import Image, ImageDraw
+            import io
+            
+            # Create a 64x64 image with green background
+            img = Image.new('RGB', (64, 64), color='lightgreen')
+            draw = ImageDraw.Draw(img)
+            
+            # Draw a simple leaf shape
+            draw.ellipse([10, 10, 54, 54], fill='green', outline='darkgreen')
+            draw.ellipse([20, 20, 44, 44], fill='darkgreen')
+            
+            # Convert to bytes
+            img_bytes = io.BytesIO()
+            img.save(img_bytes, format='PNG')
+            return img_bytes.getvalue()
+            
+        except ImportError:
+            # Fallback to a valid minimal PNG if PIL is not available
+            # This is a 1x1 green pixel PNG
+            png_data = base64.b64decode(
+                'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
+            )
+            return png_data
 
     def test_classify_endpoint(self):
         """Test disease classification endpoint"""
@@ -161,6 +182,165 @@ class CropSenseAPITester:
         
         return success
 
+    def test_advisory_multilanguage(self):
+        """Test advisory endpoint with different languages"""
+        base_data = {
+            "crop_name": "Tomato",
+            "disease_label": "Tomato — Early Blight",
+            "confidence": 0.85,
+            "image_base64": base64.b64encode(self.create_test_image()).decode('utf-8')
+        }
+        
+        languages = [
+            ("English", "en"),
+            ("Hindi", "hi"), 
+            ("Marathi", "mr")
+        ]
+        
+        all_success = True
+        
+        for lang_name, lang_code in languages:
+            test_data = {**base_data, "language": lang_code}
+            
+            success, response = self.run_test(
+                f"Advisory - {lang_name}",
+                "POST",
+                "advisory",
+                200,
+                data=test_data
+            )
+            
+            if success and isinstance(response, dict):
+                print(f"✅ {lang_name} advisory generated successfully")
+                # For non-English, check if response contains non-ASCII characters (indicating local language)
+                if lang_code != "en":
+                    advisory_text = response.get('plain_language_advisory', '')
+                    if any(ord(char) > 127 for char in advisory_text):
+                        print(f"✅ {lang_name} response contains local language characters")
+                    else:
+                        print(f"⚠️  {lang_name} response may not be in local language")
+            else:
+                all_success = False
+                
+        return all_success
+
+    def test_history_endpoints(self):
+        """Test history CRUD operations"""
+        print(f"\n🔄 Testing History CRUD Operations...")
+        
+        # Test data for history record
+        history_data = {
+            "crop_name": "Tomato",
+            "disease_label": "Tomato — Early Blight",
+            "confidence": 0.85,
+            "severity": "Moderate",
+            "visible_symptoms": "Brown spots on leaves",
+            "likely_cause": "Fungal infection",
+            "treatment": "Apply fungicide spray",
+            "preventive_measures": "Ensure proper ventilation",
+            "plain_language_advisory": "Your tomato plant has early blight. Apply fungicide treatment.",
+            "language": "en"
+        }
+        
+        # Test 1: Save diagnosis to history
+        save_success, save_response = self.run_test(
+            "Save Diagnosis to History",
+            "POST",
+            "history",
+            200,
+            data=history_data
+        )
+        
+        if not save_success:
+            return False
+            
+        record_id = save_response.get('id') if isinstance(save_response, dict) else None
+        if not record_id:
+            print("❌ No record ID returned from save operation")
+            return False
+        
+        # Test 2: Get history (should include our record)
+        get_success, get_response = self.run_test(
+            "Get History",
+            "GET", 
+            "history",
+            200
+        )
+        
+        if not get_success:
+            return False
+            
+        if not isinstance(get_response, list):
+            print("❌ History response should be a list")
+            return False
+            
+        # Check if our record is in the history
+        found_record = False
+        for record in get_response:
+            if record.get('id') == record_id:
+                found_record = True
+                print(f"✅ Saved record found in history: {record['disease_label']}")
+                break
+                
+        if not found_record:
+            print("❌ Saved record not found in history")
+            return False
+        
+        # Test 3: Delete specific record
+        delete_success, _ = self.run_test(
+            f"Delete Specific Record ({record_id})",
+            "DELETE",
+            f"history/{record_id}",
+            200
+        )
+        
+        if not delete_success:
+            return False
+            
+        # Test 4: Verify record was deleted
+        verify_success, verify_response = self.run_test(
+            "Verify Record Deleted",
+            "GET",
+            "history", 
+            200
+        )
+        
+        if verify_success and isinstance(verify_response, list):
+            # Check that our record is no longer in the list
+            still_exists = any(record.get('id') == record_id for record in verify_response)
+            if still_exists:
+                print("❌ Record still exists after deletion")
+                return False
+            else:
+                print("✅ Record successfully deleted")
+        
+        # Test 5: Clear all history
+        clear_success, _ = self.run_test(
+            "Clear All History",
+            "DELETE",
+            "history",
+            200
+        )
+        
+        if not clear_success:
+            return False
+            
+        # Test 6: Verify history is empty
+        empty_success, empty_response = self.run_test(
+            "Verify History Cleared",
+            "GET",
+            "history",
+            200
+        )
+        
+        if empty_success and isinstance(empty_response, list):
+            if len(empty_response) == 0:
+                print("✅ History successfully cleared")
+            else:
+                print(f"⚠️  History not completely cleared, {len(empty_response)} records remain")
+        
+        return save_success and get_success and delete_success and clear_success
+
     def test_end_to_end_flow(self):
         """Test complete end-to-end flow"""
         print(f"\n🔄 Testing End-to-End Flow...")
@@ -216,6 +396,8 @@ def main():
         ("Status Endpoints", tester.test_status_endpoints),
         ("Disease Classification", tester.test_classify_endpoint),
         ("Treatment Advisory", tester.test_advisory_endpoint),
+        ("Multi-language Advisory", tester.test_advisory_multilanguage),
+        ("History CRUD Operations", tester.test_history_endpoints),
         ("End-to-End Flow", tester.test_end_to_end_flow)
     ]
     

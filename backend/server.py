@@ -33,17 +33,34 @@ HF_MODEL_URL = "https://api-inference.huggingface.co/models/linkanjarad/mobilene
 # Initialize Groq client
 groq_client = Groq(api_key=GROQ_API_KEY)
 
-# Create the main app without a prefix
-app = FastAPI()
+# Configure logging early
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
-# Create a router with the /api prefix
+# Create the main app
+app = FastAPI()
 api_router = APIRouter(prefix="/api")
 
+# Language mappings
+LANGUAGE_MAP = {
+    "en": "English",
+    "hi": "Hindi (हिन्दी)",
+    "mr": "Marathi (मराठी)"
+}
 
-# Define Models
+LANGUAGE_INSTRUCTIONS = {
+    "en": "Respond entirely in English.",
+    "hi": "Respond entirely in Hindi (हिन्दी). Use Devanagari script. All field values must be in Hindi.",
+    "mr": "Respond entirely in Marathi (मराठी). Use Devanagari script. All field values must be in Marathi."
+}
+
+
+# ─── Models ───
 class StatusCheck(BaseModel):
     model_config = ConfigDict(extra="ignore")
-    
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     client_name: str
     timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -60,6 +77,7 @@ class AdvisoryRequest(BaseModel):
     disease_label: str
     confidence: float
     image_base64: str
+    language: str = "en"
 
 class AdvisoryResponse(BaseModel):
     visible_symptoms: str
@@ -69,7 +87,34 @@ class AdvisoryResponse(BaseModel):
     preventive_measures: str
     plain_language_advisory: str
 
+class DiagnosisRecord(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    crop_name: str
+    disease_label: str
+    confidence: float
+    severity: str
+    visible_symptoms: str
+    likely_cause: str
+    treatment: str
+    preventive_measures: str
+    plain_language_advisory: str
+    language: str = "en"
+    timestamp: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
+class DiagnosisCreate(BaseModel):
+    crop_name: str
+    disease_label: str
+    confidence: float
+    severity: str
+    visible_symptoms: str
+    likely_cause: str
+    treatment: str
+    preventive_measures: str
+    plain_language_advisory: str
+    language: str = "en"
+
+
+# ─── Status endpoints ───
 @api_router.get("/")
 async def root():
     return {"message": "CropSense AI API"}
@@ -92,8 +137,8 @@ async def get_status_checks():
     return status_checks
 
 
+# ─── Classification helpers ───
 def classify_with_huggingface(image_bytes):
-    """Try HuggingFace API first"""
     headers = {"Authorization": f"Bearer {HF_TOKEN}"}
     response = requests.post(HF_MODEL_URL, headers=headers, data=image_bytes, timeout=30)
     if response.status_code != 200:
@@ -107,17 +152,15 @@ def classify_with_huggingface(image_bytes):
 
 
 def classify_with_groq(image_base64, crop_name="Unknown"):
-    """Fallback: Use Groq vision model to classify disease"""
     completion = groq_client.chat.completions.create(
         model="meta-llama/llama-4-scout-17b-16e-instruct",
-        messages=[
-            {
-                "role": "user",
-                "content": [
-                    {
-                        "type": "text",
-                        "text": f"""You are an expert plant pathologist. Analyze this leaf image and identify the plant disease.
-                        
+        messages=[{
+            "role": "user",
+            "content": [
+                {
+                    "type": "text",
+                    "text": f"""You are an expert plant pathologist. Analyze this leaf image and identify the plant disease.
+
 The farmer selected crop type: {crop_name}
 
 Return ONLY a valid JSON object with exactly these fields:
@@ -125,33 +168,30 @@ Return ONLY a valid JSON object with exactly these fields:
 - "confidence": A float between 0.0 and 1.0 representing your confidence
 
 Return ONLY the JSON, no other text."""
-                    },
-                    {
-                        "type": "image_url",
-                        "image_url": {
-                            "url": f"data:image/jpeg;base64,{image_base64}"
-                        }
-                    }
-                ]
-            }
-        ],
+                },
+                {
+                    "type": "image_url",
+                    "image_url": {"url": f"data:image/jpeg;base64,{image_base64}"}
+                }
+            ]
+        }],
         temperature=0.1,
         max_tokens=256,
         response_format={"type": "json_object"}
     )
-    
     result = json.loads(completion.choices[0].message.content)
     return result.get("label", "Unknown Disease"), result.get("confidence", 0.85)
 
 
-def get_advisory_from_groq(crop_name, disease_label, confidence):
-    """Fallback: Use Groq for advisory when Claude fails"""
+# ─── Advisory helpers ───
+def get_advisory_from_groq(crop_name, disease_label, confidence, language="en"):
+    lang_instruction = LANGUAGE_INSTRUCTIONS.get(language, LANGUAGE_INSTRUCTIONS["en"])
     completion = groq_client.chat.completions.create(
         model="meta-llama/llama-4-scout-17b-16e-instruct",
         messages=[
             {
                 "role": "system",
-                "content": "You are an expert plant disease specialist. Return ONLY valid JSON — no markdown, no code fences."
+                "content": f"You are an expert plant disease specialist. Return ONLY valid JSON — no markdown, no code fences. {lang_instruction}"
             },
             {
                 "role": "user",
@@ -164,27 +204,28 @@ Model Confidence: {confidence * 100:.1f}%
 Return ONLY a JSON object with these exact fields:
 - "visible_symptoms": What symptoms are typically visible (string)
 - "likely_cause": What causes this disease (string)
-- "severity": One of "Healthy", "Mild", "Moderate", or "Severe" (string)
+- "severity": One of "Healthy", "Mild", "Moderate", or "Severe" (string, always in English)
 - "treatment": Treatment steps as a single string with bullet points
 - "preventive_measures": Prevention steps as a single string with bullet points
-- "plain_language_advisory": Simple farmer advice in 2-3 sentences (string)"""
+- "plain_language_advisory": Simple farmer advice in 2-3 sentences (string)
+
+{lang_instruction}"""
             }
         ],
         temperature=0.3,
-        max_tokens=800,
+        max_tokens=1200,
         response_format={"type": "json_object"}
     )
-    
     return json.loads(completion.choices[0].message.content)
 
 
+# ─── Classify endpoint ───
 @api_router.post("/classify", response_model=ClassificationResponse)
 async def classify_disease(file: UploadFile = File(...), crop_name: str = Form(default="Unknown")):
-    """Classify plant disease — tries HuggingFace first, falls back to Groq vision"""
     try:
         image_bytes = await file.read()
         image_base64 = base64.b64encode(image_bytes).decode('utf-8')
-        
+
         # Try HuggingFace first
         try:
             label, confidence = classify_with_huggingface(image_bytes)
@@ -192,49 +233,52 @@ async def classify_disease(file: UploadFile = File(...), crop_name: str = Form(d
             return ClassificationResponse(label=label, confidence=confidence)
         except Exception as hf_error:
             logger.warning(f"HuggingFace failed, falling back to Groq: {hf_error}")
-        
+
         # Fallback to Groq vision
         label, confidence = classify_with_groq(image_base64, crop_name)
         logger.info(f"Groq classification: {label} ({confidence:.2%})")
         return ClassificationResponse(label=label, confidence=confidence)
-    
+
     except Exception as e:
         logger.error(f"Classification error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# ─── Advisory endpoint (with multi-language) ───
 @api_router.post("/advisory", response_model=AdvisoryResponse)
 async def get_advisory(request: AdvisoryRequest):
-    """Get treatment advisory — tries Claude first, falls back to Groq"""
     advisory_data = None
-    
+    lang = request.language or "en"
+    lang_instruction = LANGUAGE_INSTRUCTIONS.get(lang, LANGUAGE_INSTRUCTIONS["en"])
+
     # Try Claude (Emergent LLM) first
     try:
         chat = LlmChat(
             api_key=EMERGENT_LLM_KEY,
             session_id=f"cropsense-{uuid.uuid4()}",
-            system_message="You are an expert plant disease specialist. Return ONLY valid JSON — no markdown, no code fences. Schema: {visible_symptoms, likely_cause, severity: Healthy|Mild|Moderate|Severe, treatment, preventive_measures, plain_language_advisory}"
+            system_message=f"You are an expert plant disease specialist. Return ONLY valid JSON — no markdown, no code fences. Schema: {{visible_symptoms, likely_cause, severity: Healthy|Mild|Moderate|Severe, treatment, preventive_measures, plain_language_advisory}}. {lang_instruction}"
         ).with_model("anthropic", "claude-sonnet-4-20250514")
-        
+
         user_text = f"""Analyze this crop disease case:
 
 Crop: {request.crop_name}
 Disease Detected: {request.disease_label}
 Model Confidence: {request.confidence * 100:.1f}%
 
-Based on the disease identification, provide:
+Provide:
 1. visible_symptoms: What symptoms are visible on the leaf
 2. likely_cause: What causes this disease
-3. severity: Classification as Healthy, Mild, Moderate, or Severe
+3. severity: Classification as Healthy, Mild, Moderate, or Severe (always in English)
 4. treatment: Treatment steps (bullet points)
 5. preventive_measures: Prevention steps (bullet points)
 6. plain_language_advisory: Simple, actionable advice for farmers in 2-3 sentences
 
+{lang_instruction}
 Return ONLY the JSON object, no other text."""
 
         user_message = UserMessage(text=user_text)
         response = await chat.send_message(user_message)
-        
+
         try:
             advisory_data = json.loads(response)
         except json.JSONDecodeError:
@@ -246,31 +290,55 @@ Return ONLY the JSON object, no other text."""
                 advisory_data = json.loads(json_str)
             else:
                 raise ValueError("Invalid JSON from Claude")
-        
+
         logger.info("Claude advisory generated successfully")
-    
+
     except Exception as claude_error:
         logger.warning(f"Claude failed, falling back to Groq: {claude_error}")
-        
-        # Fallback to Groq
         try:
             advisory_data = get_advisory_from_groq(
-                request.crop_name, request.disease_label, request.confidence
+                request.crop_name, request.disease_label, request.confidence, lang
             )
             logger.info("Groq advisory generated successfully (fallback)")
         except Exception as groq_error:
             logger.error(f"Groq advisory also failed: {groq_error}")
             raise HTTPException(status_code=500, detail=f"Both Claude and Groq advisory failed: {str(groq_error)}")
-    
-    # Convert arrays to strings if needed
+
+    # Convert arrays to strings
     for field in ['treatment', 'preventive_measures']:
         if field in advisory_data and isinstance(advisory_data[field], list):
             advisory_data[field] = '\n'.join(f"• {item}" for item in advisory_data[field])
-    
+
     return AdvisoryResponse(**advisory_data)
 
 
-# Include the router in the main app
+# ─── History endpoints ───
+@api_router.post("/history", response_model=DiagnosisRecord)
+async def save_diagnosis(input_data: DiagnosisCreate):
+    record = DiagnosisRecord(**input_data.model_dump())
+    doc = record.model_dump()
+    await db.diagnoses.insert_one(doc)
+    return record
+
+@api_router.get("/history", response_model=List[DiagnosisRecord])
+async def get_history():
+    records = await db.diagnoses.find({}, {"_id": 0}).sort("timestamp", -1).to_list(50)
+    return records
+
+@api_router.delete("/history/{record_id}")
+async def delete_diagnosis(record_id: str):
+    result = await db.diagnoses.delete_one({"id": record_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Record not found")
+    return {"message": "Diagnosis record deleted"}
+
+@api_router.delete("/history")
+async def clear_history():
+    await db.diagnoses.delete_many({})
+    return {"message": "All history cleared"}
+
+
+# Include router and middleware
 app.include_router(api_router)
 
 app.add_middleware(
@@ -280,13 +348,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
