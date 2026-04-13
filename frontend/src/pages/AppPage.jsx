@@ -22,6 +22,7 @@ const AppPage = () => {
       setAnalysisStep(2);
       const formData = new FormData();
       formData.append('file', imageFile);
+      formData.append('crop_name', cropName);
 
       const classifyResponse = await axios.post(`${API}/classify`, formData, {
         headers: {
