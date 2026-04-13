@@ -1,0 +1,94 @@
+{
+  "theme": "LIGHT",
+  "archetype": "1 (Organic & Earthy)",
+  "rationale": "Farmers need approachability, trust, and growth-oriented visuals. Light theme with vibrant greens (--green-mid, --green-muted) builds on the organic connection. We avoid dark tech-bro vibes in favor of sunlit, tactile interfaces (Clay & Crisp surfaces).",
+  "colors": {
+    "primary": "var(--green-mid)",
+    "primary_hover": "var(--green-dark)",
+    "secondary": "var(--teal)",
+    "background": "#FAFAFA",
+    "surface": "#FFFFFF",
+    "surface_muted": "var(--green-pale)",
+    "text_main": "var(--gray-900)",
+    "text_muted": "#52525B",
+    "border": "var(--green-light)",
+    "accents": {
+      "amber": "var(--amber)",
+      "red": "var(--red)",
+      "teal_light": "var(--teal-light)",
+      "green_dark": "var(--green-dark)"
+    }
+  },
+  "typography": {
+    "heading_font": "Nunito, sans-serif",
+    "body_font": "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+    "rules": {
+      "h1": "text-5xl lg:text-6xl font-black tracking-tight leading-none text-gray-900",
+      "h2": "text-3xl lg:text-4xl font-extrabold tracking-tight text-gray-900",
+      "h3": "text-xl lg:text-2xl font-bold tracking-tight text-gray-900",
+      "body": "text-base leading-relaxed text-gray-600",
+      "overline": "text-xs font-bold uppercase tracking-[0.2em] text-green-muted"
+    }
+  },
+  "layout": {
+    "spacing": "Generous (p-8, p-12, gap-8)",
+    "grid_strategy": "Asymmetrical Bento grids for features. Split two-column layout for the app interface.",
+    "container": "max-w-7xl mx-auto px-6 lg:px-8",
+    "radius": "rounded-2xl for main cards, rounded-full for buttons/chips",
+    "borders": "1px solid var(--green-light) for soft structural definition"
+  },
+  "surfaces": {
+    "header": "Crystal Glass: bg-white/80 backdrop-blur-xl border-b border-green-light/50",
+    "cards": "Clay & Crisp: bg-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-green-pale",
+    "upload_zone": "Dashed border (border-2 border-dashed border-green-muted/30) with subtle green-pale background, hover state deepens background and green-mid border",
+    "severity_badges": {
+      "healthy": "bg-green-pale text-green-dark border-green-light",
+      "mild": "bg-teal-light text-teal border-teal/20",
+      "moderate": "bg-amber/10 text-amber border-amber/20",
+      "severe": "bg-red/10 text-red border-red/20"
+    }
+  },
+  "components": {
+    "buttons": {
+      "primary": "bg-green-mid hover:bg-green-dark text-white rounded-full px-8 py-3 font-bold transition-all duration-300 shadow-lg shadow-green-mid/20 hover:shadow-green-mid/40 transform hover:-translate-y-0.5",
+      "secondary": "bg-white border-2 border-green-mid text-green-mid hover:bg-green-pale rounded-full px-8 py-3 font-bold transition-all duration-300",
+      "outline": "border border-green-light text-gray-900 hover:bg-green-pale hover:border-green-mid px-4 py-2 rounded-full font-semibold"
+    },
+    "crop_chips": "border border-gray-200 text-gray-600 hover:border-green-mid hover:text-green-mid rounded-full px-4 py-2 text-sm font-bold transition-colors cursor-pointer data-[state=active]:bg-green-mid data-[state=active]:text-white data-[state=active]:border-green-mid",
+    "progress_steps": "Horizontal layout with animated fill bar. Active step uses green-mid, inactive uses green-pale."
+  },
+  "media": {
+    "image_urls": {
+      "hero_bg": {
+        "url": "https://images.unsplash.com/photo-1596415340783-e459d0757527?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2Nzd8MHwxfHNlYXJjaHwxfHxmYXJtZXIlMjBmaWVsZCUyMHN1bnNldHxlbnwwfHx8fDE3NzYwNzI5OTV8MA&ixlib=rb-4.1.0&q=85",
+        "description": "Green wheat field during sunset, used for Hero section visual impact"
+      },
+      "pipeline_visual": {
+        "url": "https://images.unsplash.com/photo-1593701635836-7fd2cd40a35f?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1NDh8MHwxfHNlYXJjaHwzfHxoZWFsdGh5JTIwY3JvcCUyMGxlYWYlMjBjbG9zZSUyMHVwfGVufDB8fHx8MTc3NjA3Mjk5NXww&ixlib=rb-4.1.0&q=85",
+        "description": "Close up green leaf for the AI scanning pipeline step"
+      },
+      "how_it_works": {
+        "url": "https://images.unsplash.com/photo-1599591520443-e5045e52d4e6?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzMzN8MHwxfHNlYXJjaHwxfHxzbWFydCUyMGZhcm1pbmclMjB0YWJsZXR8ZW58MHx8fHwxNzc2MDcyOTk1fDA&ixlib=rb-4.1.0&q=85",
+        "description": "Smart farming tablet used for the feature/how it works visual"
+      }
+    }
+  },
+  "animation": {
+    "strategy": "Smooth, deliberate. Use framer-motion for staggering list items and fade-ups on the landing page.",
+    "hover_states": "Tactile lifts (-translate-y-1) and shadow increases.",
+    "pipeline": "Use glowing 'Tracing Beam' or subtle pulsing borders connecting the nodes in the pipeline section."
+  },
+  "testing": {
+    "rules": "All interactive and key informational elements MUST include a `data-testid` attribute (e.g., data-testid='upload-zone')."
+  },
+  "instructions_to_main_agent": [
+    "Use plain JavaScript (.jsx). Do not use TypeScript.",
+    "Follow the React Router DOM setup strictly for '/' and '/app'.",
+    "Add the specified CSS variables directly to index.css.",
+    "Ensure 'Nunito' is imported from Google Fonts in index.css.",
+    "The Hero section must have high impact—consider using the hero_bg image with a soft gradient overlay (bg-gradient-to-r from-black/60 via-black/30 to-transparent) if text is layered, or use a Bento grid layout to place the image beside the text.",
+    "Implement a fully functional UI state flow in AppPage (Empty -> Loading/Progress -> Results).",
+    "Ensure components are responsive, breaking down into single columns on mobile devices.",
+    "Add lucide-react icons for visual hierarchy (e.g., UploadCloud, Leaf, ShieldAlert)."
+  ]
+}
