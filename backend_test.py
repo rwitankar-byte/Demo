@@ -6,7 +6,7 @@ from datetime import datetime
 from pathlib import Path
 
 class CropSenseAPITester:
-    def __init__(self, base_url="https://harvest-health-12.preview.emergentagent.com"):
+    def __init__(self, base_url="http://localhost:8000"):
         self.base_url = base_url
         self.api_url = f"{base_url}/api"
         self.tests_run = 0

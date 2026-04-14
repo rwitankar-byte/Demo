@@ -9,9 +9,6 @@ from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional
 import uuid
 from datetime import datetime, timezone
-import requests
-import base64
-import json
 from groq import Groq
 from emergentintegrations.llm.chat import LlmChat, UserMessage
 
@@ -25,7 +22,6 @@ client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
 
 # API Keys
-EMERGENT_LLM_KEY = os.environ.get('EMERGENT_LLM_KEY')
 HF_TOKEN = os.environ.get('HF_TOKEN')
 GROQ_API_KEY = os.environ.get('GROQ_API_KEY')
 HF_MODEL_URL = "https://api-inference.huggingface.co/models/linkanjarad/mobilenet_v2_1.0_224-plant-disease-identification"
@@ -251,65 +247,22 @@ async def get_advisory(request: AdvisoryRequest):
     lang = request.language or "en"
     lang_instruction = LANGUAGE_INSTRUCTIONS.get(lang, LANGUAGE_INSTRUCTIONS["en"])
 
-    # Try Claude (Emergent LLM) first
+    # Get advisory from Groq
     try:
-        chat = LlmChat(
-            api_key=EMERGENT_LLM_KEY,
-            session_id=f"cropsense-{uuid.uuid4()}",
-            system_message=f"You are an expert plant disease specialist. Return ONLY valid JSON — no markdown, no code fences. Schema: {{visible_symptoms, likely_cause, severity: Healthy|Mild|Moderate|Severe, treatment, preventive_measures, plain_language_advisory}}. {lang_instruction}"
-        ).with_model("anthropic", "claude-sonnet-4-20250514")
+        advisory_data = get_advisory_from_groq(
+            request.crop_name, request.disease_label, request.confidence, lang
+        )
+        logger.info("Groq advisory generated successfully")
 
-        user_text = f"""Analyze this crop disease case:
+        # Convert arrays to strings
+        for field in ['treatment', 'preventive_measures']:
+            if field in advisory_data and isinstance(advisory_data[field], list):
+                advisory_data[field] = '\n'.join(f"• {item}" for item in advisory_data[field])
 
-Crop: {request.crop_name}
-Disease Detected: {request.disease_label}
-Model Confidence: {request.confidence * 100:.1f}%
-
-Provide:
-1. visible_symptoms: What symptoms are visible on the leaf
-2. likely_cause: What causes this disease
-3. severity: Classification as Healthy, Mild, Moderate, or Severe (always in English)
-4. treatment: Treatment steps (bullet points)
-5. preventive_measures: Prevention steps (bullet points)
-6. plain_language_advisory: Simple, actionable advice for farmers in 2-3 sentences
-
-{lang_instruction}
-Return ONLY the JSON object, no other text."""
-
-        user_message = UserMessage(text=user_text)
-        response = await chat.send_message(user_message)
-
-        try:
-            advisory_data = json.loads(response)
-        except json.JSONDecodeError:
-            if "```json" in response:
-                json_str = response.split("```json")[1].split("```")[0].strip()
-                advisory_data = json.loads(json_str)
-            elif "```" in response:
-                json_str = response.split("```")[1].split("```")[0].strip()
-                advisory_data = json.loads(json_str)
-            else:
-                raise ValueError("Invalid JSON from Claude")
-
-        logger.info("Claude advisory generated successfully")
-
-    except Exception as claude_error:
-        logger.warning(f"Claude failed, falling back to Groq: {claude_error}")
-        try:
-            advisory_data = get_advisory_from_groq(
-                request.crop_name, request.disease_label, request.confidence, lang
-            )
-            logger.info("Groq advisory generated successfully (fallback)")
-        except Exception as groq_error:
-            logger.error(f"Groq advisory also failed: {groq_error}")
-            raise HTTPException(status_code=500, detail=f"Both Claude and Groq advisory failed: {str(groq_error)}")
-
-    # Convert arrays to strings
-    for field in ['treatment', 'preventive_measures']:
-        if field in advisory_data and isinstance(advisory_data[field], list):
-            advisory_data[field] = '\n'.join(f"• {item}" for item in advisory_data[field])
-
-    return AdvisoryResponse(**advisory_data)
+        return AdvisoryResponse(**advisory_data)
+    except Exception as e:
+        logger.error(f"Advisory generation failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # ─── History endpoints ───
