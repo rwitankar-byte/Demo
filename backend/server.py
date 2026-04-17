@@ -1,7 +1,6 @@
 from fastapi import FastAPI, APIRouter, File, UploadFile, Form, HTTPException
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
-from motor.motor_asyncio import AsyncIOMotorClient
 import os
 import logging
 from pathlib import Path
@@ -9,21 +8,60 @@ from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional
 import uuid
 from datetime import datetime, timezone
+import base64
+import json
+import requests
 from groq import Groq
+from supabase import create_client
 
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
-# MongoDB connection
-mongo_url = os.environ['MONGO_URL']
-client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ['DB_NAME']]
+# Supabase connection
+SUPABASE_URL = os.environ.get('SUPABASE_URL')
+SUPABASE_SERVICE_ROLE_KEY = os.environ.get('SUPABASE_SERVICE_ROLE_KEY')
+
+if not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
+    raise RuntimeError('SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set in the environment')
+
+supabase = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
 # API Keys
 HF_TOKEN = os.environ.get('HF_TOKEN')
 GROQ_API_KEY = os.environ.get('GROQ_API_KEY')
 HF_MODEL_URL = "https://api-inference.huggingface.co/models/linkanjarad/mobilenet_v2_1.0_224-plant-disease-identification"
+
+
+def supabase_insert(table_name, payload):
+    result = supabase.table(table_name).insert(payload).execute()
+    if result.error:
+        raise Exception(result.error.message or str(result.error))
+    return result.data
+
+
+def supabase_select(table_name, query="*", order_by=None, limit=None):
+    query_builder = supabase.table(table_name).select(query)
+    if order_by:
+        query_builder = query_builder.order(order_by, desc=True)
+    if limit:
+        query_builder = query_builder.limit(limit)
+    result = query_builder.execute()
+    if result.error:
+        raise Exception(result.error.message or str(result.error))
+    return result.data
+
+
+def supabase_delete(table_name, match=None):
+    query_builder = supabase.table(table_name).delete()
+    if match:
+        query_builder = query_builder.match(match)
+    else:
+        query_builder = query_builder.neq('id', '')
+    result = query_builder.execute()
+    if result.error:
+        raise Exception(result.error.message or str(result.error))
+    return result.data
 
 # Initialize Groq client
 groq_client = Groq(api_key=GROQ_API_KEY)
@@ -130,14 +168,14 @@ async def create_status_check(input: StatusCheckCreate):
     status_obj = StatusCheck(**status_dict)
     doc = status_obj.model_dump()
     doc['timestamp'] = doc['timestamp'].isoformat()
-    _ = await db.status_checks.insert_one(doc)
+    supabase_insert("status_checks", doc)
     return status_obj
 
 @api_router.get("/status", response_model=List[StatusCheck])
 async def get_status_checks():
-    status_checks = await db.status_checks.find({}, {"_id": 0}).to_list(1000)
+    status_checks = supabase_select("status_checks", "*")
     for check in status_checks:
-        if isinstance(check['timestamp'], str):
+        if isinstance(check.get('timestamp'), str):
             check['timestamp'] = datetime.fromisoformat(check['timestamp'])
     return status_checks
 
@@ -279,24 +317,24 @@ async def get_advisory(request: AdvisoryRequest):
 async def save_diagnosis(input_data: DiagnosisCreate):
     record = DiagnosisRecord(**input_data.model_dump())
     doc = record.model_dump()
-    await db.diagnoses.insert_one(doc)
+    supabase_insert("diagnoses", doc)
     return record
 
 @api_router.get("/history", response_model=List[DiagnosisRecord])
 async def get_history():
-    records = await db.diagnoses.find({}, {"_id": 0}).sort("timestamp", -1).to_list(50)
+    records = supabase_select("diagnoses", "*", order_by="timestamp", limit=50)
     return records
 
 @api_router.delete("/history/{record_id}")
 async def delete_diagnosis(record_id: str):
-    result = await db.diagnoses.delete_one({"id": record_id})
-    if result.deleted_count == 0:
+    deleted = supabase_delete("diagnoses", {"id": record_id})
+    if not deleted:
         raise HTTPException(status_code=404, detail="Record not found")
     return {"message": "Diagnosis record deleted"}
 
 @api_router.delete("/history")
 async def clear_history():
-    await db.diagnoses.delete_many({})
+    supabase_delete("diagnoses")
     return {"message": "All history cleared"}
 
 
@@ -311,6 +349,3 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.on_event("shutdown")
-async def shutdown_db_client():
-    client.close()
