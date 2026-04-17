@@ -3,9 +3,7 @@ import axios from 'axios';
 import Navbar from '../components/Navbar';
 import UploadPanel from '../components/UploadPanel';
 import ResultsPanel from '../components/ResultsPanel';
-
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+import { API } from '../lib/api';
 
 const LANGUAGES = [
   { code: 'en', label: 'English', flag: 'EN' },

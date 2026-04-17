@@ -3,9 +3,7 @@ import axios from 'axios';
 import { Clock, Trash2, ChevronRight, Leaf, AlertTriangle, ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
-
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+import { API } from '../lib/api';
 
 const HistoryPage = () => {
   const [history, setHistory] = useState([]);
