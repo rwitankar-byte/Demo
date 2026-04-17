@@ -115,6 +115,16 @@ class DiagnosisCreate(BaseModel):
 async def root():
     return {"message": "CropSense AI API"}
 
+@api_router.get("/health")
+async def health_check():
+    """Health check endpoint to prevent Render instance from spinning down"""
+    return {
+        "status": "healthy",
+        "service": "CropSense AI Backend",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "database": "connected" if db else "disconnected"
+    }
+
 @api_router.post("/status", response_model=StatusCheck)
 async def create_status_check(input: StatusCheckCreate):
     status_dict = input.model_dump()
