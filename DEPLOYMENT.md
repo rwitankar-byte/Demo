@@ -31,7 +31,7 @@ https://your-frontend-name.onrender.com,http://localhost:3000
 1. Create a new Static Site from this repo.
 2. Use:
    - Root directory: `frontend`
-   - Build command: `npm ci && npm run build`
+   - Build command: `yarn install --frozen-lockfile && yarn build`
    - Publish directory: `build`
 3. Set:
    - `REACT_APP_BACKEND_URL=https://your-backend-name.onrender.com`
@@ -56,8 +56,8 @@ Frontend:
 ```bash
 cd frontend
 cp .env.example .env
-npm install
-npm start
+yarn install
+yarn start
 ```
 
 ## 4. Important Notes

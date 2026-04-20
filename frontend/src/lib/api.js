@@ -8,7 +8,7 @@ const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 if (!BACKEND_URL || BACKEND_URL.includes('undefined')) {
   console.error(
     '❌ ERROR: REACT_APP_BACKEND_URL is not configured!',
-    'Please set REACT_APP_BACKEND_URL environment variable in Vercel.'
+    'Please set REACT_APP_BACKEND_URL in your Render frontend environment variables.'
   );
 }
 

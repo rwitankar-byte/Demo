@@ -2,6 +2,8 @@
 
 > **FOAI Group Project** · AI-Powered Crop Disease Detection & Farm Advisory System
 
+Live frontend: [demo-frontend-f5dn.onrender.com](https://demo-frontend-f5dn.onrender.com)
+
 ![Model Accuracy](https://img.shields.io/badge/Model%20Accuracy-95.41%25-brightgreen)
 ![HuggingFace](https://img.shields.io/badge/HuggingFace-MobileNetV2-orange)
 ![Groq AI](https://img.shields.io/badge/Advisory-Groq%20AI-blueviolet)
@@ -51,7 +53,7 @@ Result shown on screen (~5 seconds total)
 | ML Model | `linkanjarad/mobilenet_v2_1.0_224-plant-disease-identification` |
 | Advisory Generation | Groq API |
 | Fonts | Nunito (Google Fonts) |
-| Hosting | Emergent Platform |
+| Hosting | Render |
 
 ---
 
@@ -94,8 +96,8 @@ cropsense-ai/
 
 ```bash
 # Clone the repository
-git clone https://github.com/rwitankar-byte/Harvest_health.git
-cd Harvest_health
+git clone https://github.com/rwitankar-byte/Demo.git
+cd Demo
 
 # Backend setup
 cd backend
@@ -191,7 +193,7 @@ The app uses two external APIs:
 
 ## 📸 Screenshots
 
-> Add screenshots here once deployed.
+Live app: [demo-frontend-f5dn.onrender.com](https://demo-frontend-f5dn.onrender.com)
 
 ---
 

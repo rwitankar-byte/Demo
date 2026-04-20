@@ -23,7 +23,7 @@ const Footer = () => {
           </div>
           
           <a 
-            href="https://github.com/rwitankar-byte/Harvest_health" 
+            href="https://github.com/rwitankar-byte/Demo" 
             target="_blank" 
             rel="noopener noreferrer"
             className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
