@@ -158,10 +158,10 @@ The app uses two external APIs:
 
 | Member | Role |
 |---|---|
-| Member 1 | ML Model & HuggingFace Integration |
-| **Member 2 (you)** | **Website Lead — Frontend & API Integration** |
-| Member 3 | Advisory Prompting & Groq Integration |
-| Member 4 | Testing, Docs & Deployment |
+| Ankan Mondal | ML Model & HuggingFace Integration |
+| Rwitankar Pal | **Website Lead — Frontend & API Integration** |
+| Naina Sharma | Advisory Prompting & Groq Integration |
+| Amrisha | Testing, Docs & Deployment |
 
 > Update this table with real names before submitting.
 
@@ -199,10 +199,10 @@ Live app: [demo-frontend-f5dn.onrender.com](https://demo-frontend-f5dn.onrender.
 
 ## 📄 License
 
-This project is built for academic purposes as part of the **FOAI (Foundations of AI)** course group project.
+This project is built for academic purposes as part of the **FOAI (Fundamentals of AI)** course group project.
 
 ---
 
 <div align="center">
-  Built with 🌱 by the CropSense AI Team &nbsp;·&nbsp; FOAI Group Project
+  Built with 🌱 by the NeuralFlare Team &nbsp;·&nbsp; FOAI Group Project
 </div>
