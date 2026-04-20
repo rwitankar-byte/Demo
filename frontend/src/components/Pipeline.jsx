@@ -6,7 +6,7 @@ const Pipeline = () => {
     { icon: Upload, label: 'Upload' },
     { icon: CloudCog, label: 'HuggingFace API' },
     { icon: Tag, label: 'Disease Label' },
-    { icon: Brain, label: 'Claude AI' },
+    { icon: Brain, label: 'Groq AI' },
     { icon: CheckCircle, label: 'Result' }
   ];
 
@@ -64,12 +64,12 @@ const Pipeline = () => {
           </div>
 
           <div className="bg-white rounded-2xl p-8 shadow-lg border" style={{ borderColor: 'var(--green-light)' }}>
-            <h3 className="text-2xl font-bold mb-4" style={{ color: 'var(--gray-900)' }}>🧠 Claude AI Advisory</h3>
+            <h3 className="text-2xl font-bold mb-4" style={{ color: 'var(--gray-900)' }}>🧠 Groq AI Advisory</h3>
             <p className="text-gray-600 mb-4">
-              Powered by Claude Sonnet 4 to generate expert treatment advice and farmer-friendly recommendations
+              Powered by Groq-hosted Llama models to generate expert treatment advice and farmer-friendly recommendations
             </p>
             <div className="text-sm font-bold" style={{ color: 'var(--green-mid)' }}>
-              claude-sonnet-4-20250514
+              meta-llama/llama-4-scout-17b-16e-instruct
             </div>
           </div>
         </div>

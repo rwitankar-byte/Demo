@@ -18,7 +18,7 @@ const Footer = () => {
               Built with 🌱 by the CropSense AI Team · FOAI Group Project
             </p>
             <p className="text-xs mt-2">
-              Model: MobileNetV2 · Advisory: Claude AI · Accuracy: 95.41%
+              Model: MobileNetV2 · Advisory: Groq AI · Accuracy: 95.41%
             </p>
           </div>
           

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Leaf, Clock } from 'lucide-react';
+import { Leaf } from 'lucide-react';
 
 const Navbar = ({ isAppPage = false }) => {
   return (
@@ -15,18 +15,6 @@ const Navbar = ({ isAppPage = false }) => {
           </Link>
           
           <div className="flex items-center gap-3">
-            {isAppPage && (
-              <Link
-                to="/history"
-                className="hidden sm:inline-flex items-center gap-2 rounded-full px-5 py-2.5 font-bold transition-all duration-300 border hover:shadow-sm"
-                style={{ borderColor: 'var(--green-light)', color: 'var(--gray-900)' }}
-                data-testid="history-nav-btn"
-              >
-                <Clock className="w-4 h-4" />
-                History
-              </Link>
-            )}
-            
             {isAppPage ? (
               <Link 
                 to="/" 

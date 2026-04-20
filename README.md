@@ -4,7 +4,7 @@
 
 ![Model Accuracy](https://img.shields.io/badge/Model%20Accuracy-95.41%25-brightgreen)
 ![HuggingFace](https://img.shields.io/badge/HuggingFace-MobileNetV2-orange)
-![Claude AI](https://img.shields.io/badge/Advisory-Claude%20AI-blueviolet)
+![Groq AI](https://img.shields.io/badge/Advisory-Groq%20AI-blueviolet)
 ![Classes](https://img.shields.io/badge/Disease%20Classes-38-blue)
 ![Status](https://img.shields.io/badge/Status-In%20Progress-yellow)
 
@@ -18,7 +18,7 @@ CropSense AI is a web-based tool that lets farmers upload a photo of a leaf and 
 - ✅ Model confidence score
 - ✅ Visible symptoms & likely cause
 - ✅ Treatment & prevention steps
-- ✅ Plain-language farmer advisory (powered by Claude AI)
+- ✅ Plain-language farmer advisory (powered by Groq AI)
 
 The goal is to make expert-level crop diagnosis accessible to any farmer with a phone — no jargon, no searching required.
 
@@ -33,7 +33,7 @@ HuggingFace API (MobileNetV2 · 38 classes)
       ↓
 Disease label + confidence score (95.41% accuracy)
       ↓
-Claude AI (treatment + plain-language advisory)
+Groq AI (treatment + plain-language advisory)
       ↓
 Result shown on screen (~5 seconds total)
 ```
@@ -46,10 +46,10 @@ Result shown on screen (~5 seconds total)
 |---|---|
 | Frontend | React, Tailwind CSS, Lucide Icons |
 | Backend | FastAPI, Python |
-| Database | MongoDB |
+| Database | None (stateless setup) |
 | Disease Classification | HuggingFace Inference API |
 | ML Model | `linkanjarad/mobilenet_v2_1.0_224-plant-disease-identification` |
-| Advisory Generation | Anthropic Claude API (`claude-sonnet-4-20250514`) |
+| Advisory Generation | Groq API |
 | Fonts | Nunito (Google Fonts) |
 | Hosting | Emergent Platform |
 
@@ -59,7 +59,7 @@ Result shown on screen (~5 seconds total)
 
 Tomato · Potato · Wheat · Corn · Apple · Pepper · and more
 
-The model covers **38 plant disease classes** across multiple crop types. Selecting your crop helps Claude generate a more targeted advisory.
+The model covers **38 plant disease classes** across multiple crop types. Selecting your crop helps the advisory model generate more targeted guidance.
 
 ---
 
@@ -68,7 +68,7 @@ The model covers **38 plant disease classes** across multiple crop types. Select
 ```
 cropsense-ai/
 ├── backend/
-│   ├── server.py          # FastAPI backend with HF & Claude integration
+│   ├── server.py          # FastAPI backend with HF & Groq integration
 │   ├── requirements.txt   # Python dependencies
 │   └── .env              # Environment variables
 ├── frontend/
@@ -87,9 +87,8 @@ cropsense-ai/
 
 ### Prerequisites
 
-- Node.js 16+ and Yarn
-- Python 3.9+
-- MongoDB
+- Node.js 20 LTS
+- Python 3.11+
 
 ### Run Locally
 
@@ -114,11 +113,9 @@ yarn start
 
 **Backend (.env):**
 ```
-MONGO_URL=mongodb://localhost:27017
-DB_NAME=cropsense_db
 CORS_ORIGINS=*
-EMERGENT_LLM_KEY=your_emergent_key_here
 HF_TOKEN=your_huggingface_token_here
+GROQ_API_KEY=your_groq_api_key_here
 ```
 
 **Frontend (.env):**
@@ -134,10 +131,8 @@ The app uses two external APIs:
    - Get one at [huggingface.co/settings/tokens](https://huggingface.co/settings/tokens)
    - Set `HF_TOKEN` in backend/.env
 
-2. **Emergent LLM Key** — for Claude-powered advisory
-   - Available through Emergent Platform
-   - Set `EMERGENT_LLM_KEY` in backend/.env
-   - Alternatively, use your own Anthropic API key
+2. **Groq API Key** — for advisory generation
+   - Set `GROQ_API_KEY` in backend/.env
 
 ---
 
@@ -153,6 +148,7 @@ The app uses two external APIs:
 - **Farmer advisory box** — plain-language action steps
 - Fully **responsive** (mobile + desktop)
 - **Vibrant & farmer-friendly** design with organic color palette
+- **No farmer data storage** in the current deployment design
 
 ---
 
@@ -162,7 +158,7 @@ The app uses two external APIs:
 |---|---|
 | Member 1 | ML Model & HuggingFace Integration |
 | **Member 2 (you)** | **Website Lead — Frontend & API Integration** |
-| Member 3 | Claude AI Prompting & Advisory Design |
+| Member 3 | Advisory Prompting & Groq Integration |
 | Member 4 | Testing, Docs & Deployment |
 
 > Update this table with real names before submitting.
@@ -183,13 +179,13 @@ The app uses two external APIs:
 
 - [x] Upload & preview leaf image
 - [x] HuggingFace disease classification
-- [x] Claude AI advisory generation
+- [x] Groq AI advisory generation
 - [x] Responsive UI with progress steps
 - [x] Landing page with vibrant farmer-friendly design
 - [ ] Multi-language advisory (Hindi, Marathi)
 - [ ] Offline mode / PWA support
 - [ ] Mobile app version
-- [ ] Historical analysis tracking
+- [ ] Optional history tracking in a future version
 
 ---
 

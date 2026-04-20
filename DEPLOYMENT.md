@@ -4,20 +4,11 @@
 
 - Frontend: Render Static Site
 - Backend: Render Web Service
-- Database: Supabase Postgres
+- Database: none
 
-The backend also works locally without Supabase. It automatically falls back to a local SQLite database in `backend/data/local.db`.
+This version is stateless. It does not store farmer images, history, or user records.
 
-## 1. Supabase Setup
-
-1. Create a new Supabase project.
-2. Open the SQL editor.
-3. Run the SQL from `backend/supabase_schema.sql`.
-4. In Supabase project settings, copy:
-   - `Project URL` as `SUPABASE_URL`
-   - `service_role` key as `SUPABASE_SERVICE_ROLE_KEY`
-
-## 2. Backend on Render
+## 1. Backend on Render
 
 1. Create a new Web Service from this repo.
 2. Render can auto-detect `render.yaml`, or you can set it manually:
@@ -27,8 +18,6 @@ The backend also works locally without Supabase. It automatically falls back to 
 3. Set these environment variables in Render:
    - `HF_TOKEN`
    - `GROQ_API_KEY`
-   - `SUPABASE_URL`
-   - `SUPABASE_SERVICE_ROLE_KEY`
    - `CORS_ORIGINS`
 
 Example `CORS_ORIGINS`:
@@ -37,7 +26,7 @@ Example `CORS_ORIGINS`:
 https://your-frontend-name.onrender.com,http://localhost:3000
 ```
 
-## 3. Frontend on Render
+## 2. Frontend on Render
 
 1. Create a new Static Site from this repo.
 2. Use:
@@ -49,7 +38,7 @@ https://your-frontend-name.onrender.com,http://localhost:3000
    - `WDS_SOCKET_PORT=443`
    - `ENABLE_HEALTH_CHECK=false`
 
-## 4. Local Development
+## 3. Local Development
 
 Backend:
 
@@ -71,8 +60,9 @@ npm install
 npm start
 ```
 
-## 5. Important Notes
+## 4. Important Notes
 
 - Use Node `20.18.0` or another Node 20 LTS release for the frontend build.
 - Use Python `3.11` on Render for the backend.
-- If Hugging Face or Groq is temporarily unavailable, the backend now returns a safe fallback response instead of crashing.
+- A public frontend-only deployment is not recommended because it would expose your Hugging Face and Groq API keys.
+- If Hugging Face or Groq is temporarily unavailable, the backend returns a safe fallback response instead of crashing.

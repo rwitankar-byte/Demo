@@ -50,24 +50,6 @@ const AppPage = () => {
       const combinedResult = { classification, advisory };
       setResult(combinedResult);
 
-      // Auto-save to history
-      try {
-        await axios.post(`${API}/history`, {
-          crop_name: cropName,
-          disease_label: classification.label,
-          confidence: classification.confidence,
-          severity: advisory.severity,
-          visible_symptoms: advisory.visible_symptoms,
-          likely_cause: advisory.likely_cause,
-          treatment: advisory.treatment,
-          preventive_measures: advisory.preventive_measures,
-          plain_language_advisory: advisory.plain_language_advisory,
-          language: language
-        });
-      } catch (saveErr) {
-        console.warn('Failed to save to history:', saveErr);
-      }
-
       setIsAnalyzing(false);
       setAnalysisStep(0);
     } catch (error) {
