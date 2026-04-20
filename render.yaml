@@ -19,7 +19,7 @@ services:
   - type: static
     name: cropsense-frontend
     rootDir: frontend
-    buildCommand: npm ci && npm run build
+    buildCommand: yarn install --frozen-lockfile && yarn build
     staticPublishPath: build
     envVars:
       - key: NODE_VERSION
